@@ -22,14 +22,13 @@ public class RabbitMQListener {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    @RabbitListener(queues = RabbitMQConfiguration.TEXT_PROCESSOR_QUEUE)
+    @RabbitListener(queues = RabbitMQConfiguration.POST_QUEUE)
     public void listen(final PostCreatedDto message) {
         LOGGER.info("Received message: {}", message);
         final var postProcessedDto = this.textProcessorService.processPost(message);
         LOGGER.debug("Processed message: {}", postProcessedDto);
         this.rabbitTemplate.convertAndSend(
-                RabbitMQConfiguration.ALGAPOSTS_POST_EVENTS_V1_EXCHANGE,
-                RabbitMQConfiguration.POST_PROCESSED_V1_RK,
+                RabbitMQConfiguration.RESULT_QUEUE,
                 postProcessedDto);
         LOGGER.debug("Sent message: {}", postProcessedDto);
         LOGGER.info("Message processed and sent successfully.");

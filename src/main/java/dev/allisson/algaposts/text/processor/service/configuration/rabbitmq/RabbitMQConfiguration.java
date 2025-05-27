@@ -1,10 +1,5 @@
 package dev.allisson.algaposts.text.processor.service.configuration.rabbitmq;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
-import org.springframework.amqp.core.Exchange;
-import org.springframework.amqp.core.ExchangeBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -18,13 +13,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Configuration
 public class RabbitMQConfiguration {
 
-    public static final String ALGAPOSTS_POST_EVENTS_V1_EXCHANGE = "algaposts.post-events.v1.e";
-
-    public static final String TEXT_PROCESSOR_QUEUE = "text-processor-service.post-processing.v1.q";
-    public static final String TEXT_PROCESSOR_RESULT_QUEUE = "post-service.post-processing-result.v1.q";
-
-    public static final String POST_CREATED_V1_RK = "post.created.v1";
-    public static final String POST_PROCESSED_V1_RK = "post.processed.v1";
+    public static final String POST_QUEUE = "text-processor-service.post-processing.v1.q";
+    public static final String RESULT_QUEUE = "post-service.post-processing-result.v1.q";
+    public static final String POST_DLQ = POST_QUEUE.replace(".q", ".dlq");
+    public static final String RESULT_DLQ = RESULT_QUEUE.replace(".q", ".dlq");
 
     @Bean
     Jackson2JsonMessageConverter jackson2JsonMessageConverter(final ObjectMapper objectMapper) {
@@ -39,34 +31,29 @@ public class RabbitMQConfiguration {
     }
 
     @Bean
-    Exchange postEventsExchange() {
-        return ExchangeBuilder.directExchange(ALGAPOSTS_POST_EVENTS_V1_EXCHANGE).build();
+    Queue postQueue() {
+        return QueueBuilder.durable(POST_QUEUE)
+                .withArgument("x-dead-letter-exchange", "")
+                .withArgument("x-dead-letter-routing-key", POST_DLQ)
+                .build();
     }
 
     @Bean
-    Queue textProcessorQueue() {
-        return QueueBuilder.durable(TEXT_PROCESSOR_QUEUE).build();
+    Queue resultQueue() {
+        return QueueBuilder.durable(RESULT_QUEUE)
+                .withArgument("x-dead-letter-exchange", "")
+                .withArgument("x-dead-letter-routing-key", RESULT_DLQ)
+                .build();
     }
 
     @Bean
-    Binding postCreatedBinding() {
-        return BindingBuilder
-                .bind(this.textProcessorQueue())
-                .to((DirectExchange) this.postEventsExchange())
-                .with(POST_CREATED_V1_RK);
+    Queue postDlq() {
+        return new Queue(POST_DLQ);
     }
 
     @Bean
-    Queue textProcessorResultQueue() {
-        return QueueBuilder.durable(TEXT_PROCESSOR_RESULT_QUEUE).build();
-    }
-
-    @Bean
-    Binding postProcessedBinding() {
-        return BindingBuilder
-                .bind(this.textProcessorResultQueue())
-                .to((DirectExchange) this.postEventsExchange())
-                .with(POST_PROCESSED_V1_RK);
+    Queue resultDlq() {
+        return new Queue(RESULT_DLQ);
     }
 
 }
