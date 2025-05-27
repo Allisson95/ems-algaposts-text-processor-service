@@ -1,3 +1,9 @@
+logging:
+  group:
+    business: dev.allisson.algaposts.text.processor.service
+  level:
+    business: debug
+
 server:
   port: 8081
 
